@@ -196,17 +196,24 @@ class Program
     {
         Console.WriteLine($"\nGetting forecast info for [{coordinate.Latitude}, {coordinate.Longitude}]...");
         var forecastUrl = $"https://api.weather.gov/points/{coordinate.Latitude},{coordinate.Longitude}";
-        var content = await GetAsyncJsonContent(client, forecastUrl);
-        using var jsonDoc = JsonDocument.Parse(content);
-        var hourlyUrl = jsonDoc.RootElement.GetProperty("properties").GetProperty("forecastHourly").GetString();
-
-        if ( hourlyUrl is null )
+        try
         {
-            return "Error: Could not access hourly forecast.";
-        }
+            var content = await GetAsyncJsonContent(client, forecastUrl);
+            using var jsonDoc = JsonDocument.Parse(content);
+            var hourlyUrl = jsonDoc.RootElement.GetProperty("properties").GetProperty("forecastHourly").GetString();
 
-        var hourlyForecast = await BuildHourlyForecast(client, hourlyUrl);
-        return hourlyForecast;
+            if (hourlyUrl is null)
+            {
+                return "Error: Could not get hourly forecast.";
+            }
+
+            var hourlyForecast = await BuildHourlyForecast(client, hourlyUrl);
+            return hourlyForecast;
+        }
+        catch (Exception ex)
+        {
+            return "Error: Could not retrieve forecast.";
+        }
     }
 
     static async Task<string> BuildHourlyForecast(HttpClient client, string hourlyUrl)
